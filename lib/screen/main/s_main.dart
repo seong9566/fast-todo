@@ -5,6 +5,7 @@ import 'package:fast_app_base/screen/main/write/d_write_todo.dart';
 import 'package:flutter/material.dart';
 
 import '../../common/common.dart';
+import '../../data/memory/vo_todo.dart';
 import 'w_menu_drawer.dart';
 
 class MainScreen extends StatefulWidget {
@@ -54,11 +55,7 @@ class MainScreenState extends State<MainScreen>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            final result = await WriteTodoDialog().show();
-            if (result != null) {
-              debugPrint("result : ${result.text}");
-              debugPrint("result : ${result.dateTime}");
-            }
+            context.holder.addTodo();
           },
           child: const Icon(EvaIcons.plus),
         ),
