@@ -1,32 +1,12 @@
-import 'package:fast_app_base/data/memory/todo_data_notifier.dart';
 import 'package:fast_app_base/data/memory/todo_status.dart';
 import 'package:fast_app_base/data/memory/vo_todo.dart';
 import 'package:fast_app_base/screen/dialog/d_confirm.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../screen/main/write/d_write_todo.dart';
 
-class TodoDataHolder extends InheritedWidget {
-  final TodoDataNotifier notifier;
-
-  const TodoDataHolder({
-    super.key,
-    required super.child,
-    required this.notifier,
-  });
-
-  @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
-    return true;
-  }
-
-  // 같은 위젯 트리에 있는 어떤 위젯에서도 TodoDataHolder로 접근이 가능하도록 해주는 함수
-  static TodoDataHolder _of(BuildContext context) {
-    TodoDataHolder inherited =
-        (context.dependOnInheritedWidgetOfExactType<TodoDataHolder>()!);
-    return inherited;
-  }
+class TodoDataHolder extends GetxController {
+  final RxList<Todo> todoList = <Todo>[].obs;
 
   void changeTodoStatus(Todo todo) async {
     switch (todo.status) {
@@ -40,16 +20,17 @@ class TodoDataHolder extends InheritedWidget {
           todo.status = TodoStatus.incomplete;
         });
     }
-    notifier.notify();
+    // refresh를 하게 되면, Rx가 관찰하고 있는 obs에서 rebuild가 발생함.
+    todoList.refresh();
+    //GetBuilder()를 사용할 시 update()를 사용해준다.
+    update();
   }
 
   void addTodo() async {
     final result = await WriteTodoDialog().show();
     if (result != null) {
-      // context에 cross async gaps가 발생하는 이유 : context 를 사용하기 전에 로컬에서 시간이 발생하는 작업을 하고 있을 때 완료하기 전에
-      // 아직 context가 유효하지 않았을때 context를 사용 하려고 할 때 발생 하는 에러이다
-      // 해결 방법 : mounted를 넣어서 화면이 살아있는지 확인을 해주면 된다.
-      notifier.addTodo(Todo(
+      // Rx에 add는 내부적으로 refresh를 하기 때문에 다시 refresh()를 호출 할 필요가 없다.
+      todoList.add(Todo(
         id: DateTime.now().millisecondsSinceEpoch,
         title: result.text,
         dueDate: result.dateTime,
@@ -62,16 +43,18 @@ class TodoDataHolder extends InheritedWidget {
     if (result != null) {
       todo.title = result.text;
       todo.dueDate = result.dateTime;
-      notifier.notify();
+      todoList.refresh();
+      update();
     }
   }
 
   void removeTodo(Todo todo) async {
-    notifier.value.remove(todo);
-    notifier.notify();
+    todoList.remove(todo);
+    todoList.refresh();
+    update();
   }
 }
 
-extension TodoDataHolderContextExtension on BuildContext {
-  TodoDataHolder get holder => TodoDataHolder._of(this);
+mixin class TodoDataProvider {
+  late final TodoDataHolder todoData = Get.find();
 }
